@@ -1,17 +1,31 @@
 package com.halowidy.githubusers.ui.detail
 
+import android.app.Application
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import com.halowidy.githubusers.api.RetrofitClient
+import com.halowidy.githubusers.data.local.FavoriteUser
+import com.halowidy.githubusers.data.local.FavoriteUserDao
+import com.halowidy.githubusers.data.local.UserDB
 import com.halowidy.githubusers.data.model.DetailUserResponse
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Response
-import javax.security.auth.callback.Callback
 
-class DetailUserViewModel : ViewModel(){
+class DetailUserViewModel(application: Application) : AndroidViewModel(application){
     val user = MutableLiveData<DetailUserResponse>()
+
+    private var userDao: FavoriteUserDao? = null
+    private var userDb: UserDB? = null
+
+    init {
+        userDb = UserDB.getDB(application)
+        userDao= userDb?.favUserDao()
+    }
 
     fun setUserDetail(username: String){
         RetrofitClient.apiInstance
@@ -38,4 +52,16 @@ class DetailUserViewModel : ViewModel(){
         return user
     }
 
+    fun addToFav(username: String, id: Int, avatarUrl: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            var user = FavoriteUser(username, id, avatarUrl)
+            userDao?.addToFav(user)
+        }
+    }
+    suspend fun checkUser(id: Int) = userDao?.checkUser(id)
+    fun removeFromFav(id: Int){
+        CoroutineScope(Dispatchers.IO).launch {
+            userDao?.removeFromFav(id)
+        }
+    }
 }
